@@ -1,0 +1,7 @@
+import http from 'node:http';import {readFile} from 'node:fs/promises';import {resolve,extname} from 'node:path';import {createApi,response} from './api.mjs';
+import {MemoryStore} from './memory.mjs';
+const store=new MemoryStore();const api=createApi(store,{password:process.env.TEACHER_PASSWORD||'teacher-demo-2026'});const root=resolve('public');
+const server=http.createServer(async(req,res)=>{try{if(req.url==='/.netlify/functions/game'&&req.method==='POST'){let raw='';for await(const c of req){raw+=c;if(raw.length>4096){res.writeHead(413).end();return}}try{const out=await api(JSON.parse(raw));res.writeHead(200,{'content-type':'application/json'}).end(JSON.stringify(out))}catch(e){res.writeHead(e.status||500,{'content-type':'application/json'}).end(JSON.stringify(response(e)))}return}
+ const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);const file=resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!file.startsWith(root+'/')&&!file.startsWith(root+'\\')){res.writeHead(403).end();return}const data=await readFile(file);const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css','.svg':'image/svg+xml'};res.writeHead(200,{'content-type':types[extname(file)]||'application/octet-stream'}).end(data)
+ }catch{res.writeHead(404).end('Not found')}});
+server.listen(4173,'127.0.0.1',()=>console.log('Local: http://127.0.0.1:4173 (local preview uses in-memory rooms; password teacher-demo-2026)'));
